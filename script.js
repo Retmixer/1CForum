@@ -1,14 +1,14 @@
-
 const SUPABASE_URL = 'https://ckjhpswgahgivhdoqxav.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_zAIDsj7x3R3NiXhix13TXA_-9oHjNjH';
-const { createClient } = window.supabase;        // берём createClient из глобального supabase
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);  // клиент с именем supabaseClient
+const { createClient } = window.supabase;                // глобальный supabase из CDN
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let currentPage = 1;
 const TOPICS_PER_PAGE = 5;
 let currentTopicId = null;
 
+// ---------- Уведомления и форматирование ----------
 function showToast(msg) {
   const container = document.getElementById('toastContainer');
   const el = document.createElement('div');
@@ -22,6 +22,7 @@ function formatDate(iso) {
   return new Date(iso).toLocaleString('ru');
 }
 
+// ---------- Интерфейс авторизации ----------
 function updateAuthUI() {
   const loginBtn = document.getElementById('loginBtn');
   const registerBtn = document.getElementById('registerBtn');
@@ -56,19 +57,21 @@ function updateAuthUI() {
   }
 }
 
+// ---------- Навигация между видами ----------
 function showView(viewName) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const targetId = 'view' + viewName.charAt(0).toUpperCase() + viewName.slice(1);
   document.getElementById(targetId).classList.add('active');
 }
 
+// ---------- Загрузка списка тем ----------
 async function loadTopics(filter = 'latest', searchQuery = '') {
   let query = supabaseClient.from('topics').select('*');
 
   if (filter === 'popular') {
     query = query.order('created_at', { ascending: false });
   } else if (filter === 'unanswered') {
-    // оставляем как есть, потом отфильтруем
+    // без дополнительной сортировки, отфильтруем ниже
   } else {
     query = query.order('created_at', { ascending: false });
   }
@@ -76,7 +79,7 @@ async function loadTopics(filter = 'latest', searchQuery = '') {
   const { data: topics, error } = await query;
   if (error) return showToast('Ошибка загрузки тем');
 
-  // Получаем количество ответов для каждой темы
+  // Считаем количество ответов для каждой темы
   const topicsWithReplies = await Promise.all(topics.map(async (topic) => {
     const { count } = await supabaseClient
       .from('replies')
@@ -87,11 +90,13 @@ async function loadTopics(filter = 'latest', searchQuery = '') {
 
   let filtered = topicsWithReplies;
 
+  // Поиск
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filtered = filtered.filter(t => t.title.toLowerCase().includes(q) || t.content.toLowerCase().includes(q));
   }
 
+  // Фильтр по вкладкам
   if (filter === 'popular') {
     filtered.sort((a, b) => b.repliesCount - a.repliesCount);
   } else if (filter === 'unanswered') {
@@ -104,6 +109,7 @@ async function loadTopics(filter = 'latest', searchQuery = '') {
   const start = (currentPage - 1) * TOPICS_PER_PAGE;
   const pageTopics = filtered.slice(start, start + TOPICS_PER_PAGE);
 
+  // Рендер списка тем
   const container = document.getElementById('topicsList');
   container.innerHTML = pageTopics.map(t => `
     <div class="topic-item" data-id="${t.id}">
@@ -117,23 +123,30 @@ async function loadTopics(filter = 'latest', searchQuery = '') {
     </div>
   `).join('');
 
+  // Обработчики кликов по темам
   document.querySelectorAll('.topic-item').forEach(item => {
     item.addEventListener('click', () => openTopic(item.dataset.id));
   });
 
+  // Пагинация
   const pagination = document.getElementById('pagination');
   pagination.innerHTML = '';
   for (let i = 1; i <= totalPages; i++) {
     const btn = document.createElement('button');
     btn.textContent = i;
     if (i === currentPage) btn.classList.add('active');
-    btn.addEventListener('click', () => { currentPage = i; loadTopics(getCurrentFilter(), document.getElementById('searchInput').value); });
+    btn.addEventListener('click', () => {
+      currentPage = i;
+      loadTopics(getCurrentFilter(), document.getElementById('searchInput').value);
+    });
     pagination.appendChild(btn);
   }
 
+  // Общая статистика
   document.getElementById('totalTopics').textContent = filtered.length;
   document.getElementById('totalMessages').textContent = filtered.reduce((sum, t) => sum + t.repliesCount + 1, 0);
 
+  // Топ-4 в боковой панели
   const top = [...filtered].sort((a, b) => b.repliesCount - a.repliesCount).slice(0, 4);
   document.getElementById('popularTopicsSidebar').innerHTML = top.map(t => `
     <div style="margin-bottom:0.8rem; cursor:pointer;" class="topic-item" data-id="${t.id}">
@@ -146,6 +159,7 @@ async function loadTopics(filter = 'latest', searchQuery = '') {
   });
 }
 
+// ---------- Безопасный вывод HTML ----------
 function escapeHTML(str) {
   return String(str).replace(/[&<>"']/g, function(m) {
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m];
@@ -157,12 +171,17 @@ function getCurrentFilter() {
   return activeTab ? activeTab.dataset.tab : 'latest';
 }
 
+// ---------- Просмотр отдельной темы ----------
 async function openTopic(id) {
   currentTopicId = id;
   const { data: topic } = await supabaseClient.from('topics').select('*').eq('id', id).single();
   if (!topic) return;
 
-  const { data: replies, error } = await supabaseClient.from('replies').select('*').eq('topic_id', id).order('created_at', { ascending: true });
+  const { data: replies, error } = await supabaseClient
+    .from('replies')
+    .select('*')
+    .eq('topic_id', id)
+    .order('created_at', { ascending: true });
   if (error) return showToast('Ошибка загрузки ответов');
 
   document.getElementById('topicTitle').textContent = topic.title;
@@ -179,6 +198,7 @@ async function openTopic(id) {
   updateAuthUI();
 }
 
+// ---------- Создание темы ----------
 async function createTopic() {
   if (!currentUser) return showToast('Войдите, чтобы создать тему');
   const title = document.getElementById('newTitle').value.trim();
@@ -196,6 +216,7 @@ async function createTopic() {
   showToast('Тема создана!');
 }
 
+// ---------- Добавление ответа ----------
 async function addReply() {
   if (!currentUser) return showToast('Войдите, чтобы ответить');
   const text = document.getElementById('replyText').value.trim();
@@ -213,21 +234,22 @@ async function addReply() {
   showToast('Ответ добавлен!');
 }
 
+// ---------- Аутентификация (Supabase v2 методы) ----------
 async function login(email, password) {
-  const { user, error } = await supabaseClient.auth.signIn({ email, password });
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) return showToast(error.message);
-  currentUser = user;
+  currentUser = data.user;
   updateAuthUI();
   document.getElementById('authModal').classList.remove('active');
-  showToast(`Добро пожаловать, ${user.email}!`);
+  showToast(`Добро пожаловать, ${currentUser.email}!`);
   await loadTopics(getCurrentFilter());
 }
 
 async function register(email, password) {
-  const { error } = await supabaseClient.auth.signUp({ email, password });
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
   if (error) return showToast(error.message);
   document.getElementById('authModal').classList.remove('active');
-  showToast('Регистрация успешна. Подтверждение почты можно отключить в настройках Supabase.');
+  showToast('Регистрация успешна. Проверьте почту или отключите подтверждение в Supabase.');
 }
 
 async function logout() {
@@ -238,6 +260,7 @@ async function logout() {
   await loadTopics(getCurrentFilter());
 }
 
+// ---------- Модальное окно входа/регистрации ----------
 function showAuthModal(mode) {
   const modal = document.getElementById('authModal');
   const dialog = document.getElementById('authDialog');
@@ -255,7 +278,11 @@ function showAuthModal(mode) {
 
   const close = () => modal.classList.remove('active');
   document.getElementById('authClose').addEventListener('click', close);
-  document.getElementById('switchAuthMode').addEventListener('click', () => { close(); showAuthModal(mode === 'login' ? 'register' : 'login'); });
+  document.getElementById('switchAuthMode').addEventListener('click', () => {
+    close();
+    showAuthModal(mode === 'login' ? 'register' : 'login');
+  });
+
   document.getElementById('authSubmit').addEventListener('click', async () => {
     const email = document.getElementById('authEmail').value.trim();
     const password = document.getElementById('authPassword').value.trim();
@@ -265,14 +292,17 @@ function showAuthModal(mode) {
   });
 }
 
-// ---------------------------------------
-// Инициализация после загрузки DOM
+// ---------- Инициализация ----------
 document.addEventListener('DOMContentLoaded', async () => {
-  const session = supabaseClient.auth.session();
-  if (session) currentUser = session.user;
+  // Восстановление сессии (новый асинхронный метод)
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+  }
   updateAuthUI();
   await loadTopics('latest');
 
+  // Навигация
   document.getElementById('navHome').addEventListener('click', (e) => {
     e.preventDefault();
     showView('home');
@@ -291,10 +321,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('backToHome').addEventListener('click', () => showView('home'));
   document.getElementById('backToHomeFromNew').addEventListener('click', () => showView('home'));
 
+  // Кнопки авторизации
   document.getElementById('loginBtn').addEventListener('click', () => showAuthModal('login'));
   document.getElementById('registerBtn').addEventListener('click', () => showAuthModal('register'));
   document.getElementById('logoutBtn').addEventListener('click', logout);
 
+  // Вкладки
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -304,6 +336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
+  // Поиск
   document.getElementById('searchButton').addEventListener('click', () => {
     currentPage = 1;
     loadTopics(getCurrentFilter(), document.getElementById('searchInput').value);
@@ -315,14 +348,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Создание темы и ответ
   document.getElementById('createTopicBtn').addEventListener('click', createTopic);
   document.getElementById('submitReply').addEventListener('click', addReply);
 
+  // Закрытие модалки по клику на оверлей
   window.addEventListener('click', (e) => {
-    if (e.target === document.getElementById('authModal')) document.getElementById('authModal').classList.remove('active');
+    if (e.target === document.getElementById('authModal')) {
+      document.getElementById('authModal').classList.remove('active');
+    }
   });
 
-  // Анимация слов
+  // Анимация слов в заголовке
   const words = ["решения", "интеграции", "ошибки", "запросы", "аналитика"];
   let wordIndex = 0;
   const dynamicEl = document.getElementById('dynamicWord');
@@ -335,7 +372,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 300);
   }, 2500);
 
-  // Смена темы
+  // Смена темы (светлая/тёмная)
   document.getElementById('themeToggle').addEventListener('click', () => {
     const html = document.documentElement;
     const isDark = html.getAttribute('data-theme') === 'dark';
