@@ -1,8 +1,8 @@
-const supabaseClient_URL = 'https://ckjhpswgahgivhdoqxav.supabaseClient.co';
-const supabaseClient_ANON_KEY = 'sb_publishable_zAIDsj7x3R3NiXhix13TXA_-9oHjNjH';
-const { createClient } = window.supabaseClient;  // берем из глобального объекта
-const supabaseClientClient = createClient(supabaseClient_URL, supabaseClient_ANON_KEY);
-
+// Конфигурация Supabase
+const SUPABASE_URL = 'https://ckjhpswgahgivhdoqxav.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_zAIDsj7x3R3NiXhix13TXA_-9oHjNjH';
+const { createClient } = window.supabase;        // берём createClient из глобального supabase
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);  // клиент с именем supabaseClient
 
 let currentUser = null;
 let currentPage = 1;
@@ -66,11 +66,9 @@ async function loadTopics(filter = 'latest', searchQuery = '') {
   let query = supabaseClient.from('topics').select('*');
 
   if (filter === 'popular') {
-    // популярность будем считать по количеству ответов, но в API нет агрегации.
-    // Сделаем клиентскую сортировку после получения всех тем.
     query = query.order('created_at', { ascending: false });
   } else if (filter === 'unanswered') {
-    // неэффективно, но для демо сойдёт: получим все, потом отфильтруем
+    // оставляем как есть, потом отфильтруем
   } else {
     query = query.order('created_at', { ascending: false });
   }
@@ -78,7 +76,7 @@ async function loadTopics(filter = 'latest', searchQuery = '') {
   const { data: topics, error } = await query;
   if (error) return showToast('Ошибка загрузки тем');
 
-  // Получаем количество ответов для каждой темы (можно одним запросом с группировкой, но проще так)
+  // Получаем количество ответов для каждой темы
   const topicsWithReplies = await Promise.all(topics.map(async (topic) => {
     const { count } = await supabaseClient
       .from('replies')
@@ -229,7 +227,7 @@ async function register(email, password) {
   const { error } = await supabaseClient.auth.signUp({ email, password });
   if (error) return showToast(error.message);
   document.getElementById('authModal').classList.remove('active');
-  showToast('Регистрация успешна. Подтверждение почты можно отключить в настройках supabaseClient.');
+  showToast('Регистрация успешна. Подтверждение почты можно отключить в настройках Supabase.');
 }
 
 async function logout() {
