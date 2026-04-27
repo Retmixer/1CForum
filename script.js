@@ -1,9 +1,8 @@
-// Конфигурация Supabase (только для аутентификации)
-// Конфигурация Supabase (только для аутентификации)
-const SUPABASE_URL = 'https://ckjhpswgahgivhdoqxav.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_zAIDsj7x3R3NiXhix13TXA_-9oHjNjH';
-const { createClient } = supabase;            // supabase из CDN
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);  // создаём клиент
+const supabaseClient_URL = 'https://ckjhpswgahgivhdoqxav.supabaseClient.co';
+const supabaseClient_ANON_KEY = 'sb_publishable_zAIDsj7x3R3NiXhix13TXA_-9oHjNjH';
+const { createClient } = window.supabaseClient;  // берем из глобального объекта
+const supabaseClientClient = createClient(supabaseClient_URL, supabaseClient_ANON_KEY);
+
 
 let currentUser = null;
 let currentPage = 1;
@@ -64,7 +63,7 @@ function showView(viewName) {
 }
 
 async function loadTopics(filter = 'latest', searchQuery = '') {
-  let query = supabase.from('topics').select('*');
+  let query = supabaseClient.from('topics').select('*');
 
   if (filter === 'popular') {
     // популярность будем считать по количеству ответов, но в API нет агрегации.
@@ -81,7 +80,7 @@ async function loadTopics(filter = 'latest', searchQuery = '') {
 
   // Получаем количество ответов для каждой темы (можно одним запросом с группировкой, но проще так)
   const topicsWithReplies = await Promise.all(topics.map(async (topic) => {
-    const { count } = await supabase
+    const { count } = await supabaseClient
       .from('replies')
       .select('*', { count: 'exact', head: true })
       .eq('topic_id', topic.id);
@@ -162,10 +161,10 @@ function getCurrentFilter() {
 
 async function openTopic(id) {
   currentTopicId = id;
-  const { data: topic } = await supabase.from('topics').select('*').eq('id', id).single();
+  const { data: topic } = await supabaseClient.from('topics').select('*').eq('id', id).single();
   if (!topic) return;
 
-  const { data: replies, error } = await supabase.from('replies').select('*').eq('topic_id', id).order('created_at', { ascending: true });
+  const { data: replies, error } = await supabaseClient.from('replies').select('*').eq('topic_id', id).order('created_at', { ascending: true });
   if (error) return showToast('Ошибка загрузки ответов');
 
   document.getElementById('topicTitle').textContent = topic.title;
@@ -188,7 +187,7 @@ async function createTopic() {
   const content = document.getElementById('newContent').value.trim();
   if (!title || !content) return showToast('Заполните все поля');
 
-  const { error } = await supabase.from('topics').insert([{ title, content, author: currentUser.email }]);
+  const { error } = await supabaseClient.from('topics').insert([{ title, content, author: currentUser.email }]);
   if (error) return showToast('Ошибка: ' + error.message);
 
   document.getElementById('newTitle').value = '';
@@ -204,7 +203,7 @@ async function addReply() {
   const text = document.getElementById('replyText').value.trim();
   if (!text) return showToast('Введите текст ответа');
 
-  const { error } = await supabase.from('replies').insert([{
+  const { error } = await supabaseClient.from('replies').insert([{
     topic_id: currentTopicId,
     text,
     author: currentUser.email
@@ -217,7 +216,7 @@ async function addReply() {
 }
 
 async function login(email, password) {
-  const { user, error } = await supabase.auth.signIn({ email, password });
+  const { user, error } = await supabaseClient.auth.signIn({ email, password });
   if (error) return showToast(error.message);
   currentUser = user;
   updateAuthUI();
@@ -227,14 +226,14 @@ async function login(email, password) {
 }
 
 async function register(email, password) {
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { error } = await supabaseClient.auth.signUp({ email, password });
   if (error) return showToast(error.message);
   document.getElementById('authModal').classList.remove('active');
-  showToast('Регистрация успешна. Подтверждение почты можно отключить в настройках Supabase.');
+  showToast('Регистрация успешна. Подтверждение почты можно отключить в настройках supabaseClient.');
 }
 
 async function logout() {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   currentUser = null;
   updateAuthUI();
   showToast('Вы вышли');
@@ -271,7 +270,7 @@ function showAuthModal(mode) {
 // ---------------------------------------
 // Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', async () => {
-  const session = supabase.auth.session();
+  const session = supabaseClient.auth.session();
   if (session) currentUser = session.user;
   updateAuthUI();
   await loadTopics('latest');
