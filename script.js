@@ -1,4 +1,4 @@
-// Конфигурация Supabase
+
 const SUPABASE_URL = 'https://ckjhpswgahgivhdoqxav.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_zAIDsj7x3R3NiXhix13TXA_-9oHjNjH';
 const { createClient } = window.supabase;        // берём createClient из глобального supabase
