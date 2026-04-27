@@ -1,9 +1,9 @@
 // Конфигурация Supabase (только для аутентификации)
 // Конфигурация Supabase (только для аутентификации)
-const SUPABASE_URL = 'https://ckjhpswgahgivhdoqxav.supabase.co'; // ваш URL
-const SUPABASE_ANON_KEY = 'sb_publishable_zAIDsj7x3R3NiXhix13TXA_-9oHjNjH'; // ваш ключ
-const { createClient } = supabase;
-
+const SUPABASE_URL = 'https://ckjhpswgahgivhdoqxav.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_zAIDsj7x3R3NiXhix13TXA_-9oHjNjH';
+const { createClient } = supabase;            // supabase из CDN
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);  // создаём клиент
 
 let currentUser = null;
 let currentPage = 1;
