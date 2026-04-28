@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <title>1CForum PRO · Сообщество разработчиков 1С</title>
-    <!-- Font Awesome -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    <!-- Основной файл стилей -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -36,30 +33,25 @@
             </div>
         </nav>
 
-        <!-- Hero / Заголовок -->
-        <section class="hero-section" id="heroSection">
-            <div class="hero-left">
-                <h1>
-                    Здесь рождаются <br>
-                    <span class="dynamic-word" id="dynamicWord">решения</span>
-                </h1>
-                <p class="hero-desc">Обменивайтесь опытом, находите ответы на сложные вопросы и развивайтесь вместе с сообществом 1С.</p>
-                <div class="search-wrapper">
-                    <input type="text" id="searchInput" placeholder="Поиск по форуму...">
-                    <button id="searchButton"><i class="fas fa-search"></i> Найти</button>
-                </div>
-            </div>
-            <div class="hero-right">
-                <img src="https://images.unsplash.com/photo-1639322537228-f710d846310a?w=600&auto=format&fit=crop" alt="1C community" class="hero-image">
-                <div class="floating-stat">
-                    <i class="fas fa-users"></i> <span id="totalUsers">12.4K</span> участников
-                </div>
-            </div>
-        </section>
-
-        <!-- Основной контент (переключаемые виды) -->
+        <!-- Главный вид: список тем -->
         <div id="viewHome" class="view active">
-            <!-- Вкладки -->
+            <section class="hero-section">
+                <div class="hero-left">
+                    <h1>Здесь рождаются <br><span class="dynamic-word" id="dynamicWord">решения</span></h1>
+                    <p class="hero-desc">Обменивайтесь опытом, находите ответы на сложные вопросы и развивайтесь вместе с сообществом 1С.</p>
+                    <div class="search-wrapper">
+                        <input type="text" id="searchInput" placeholder="Поиск по форуму...">
+                        <button id="searchButton"><i class="fas fa-search"></i> Найти</button>
+                    </div>
+                </div>
+                <div class="hero-right">
+                    <img src="https://images.unsplash.com/photo-1639322537228-f710d846310a?w=600&auto=format&fit=crop" alt="1C community" class="hero-image" loading="lazy">
+                    <div class="floating-stat">
+                        <i class="fas fa-users"></i> <span id="totalUsers">0</span> участников
+                    </div>
+                </div>
+            </section>
+
             <div class="tabs">
                 <button class="tab-btn active" data-tab="latest"><i class="far fa-clock"></i> Последние</button>
                 <button class="tab-btn" data-tab="popular"><i class="fas fa-fire"></i> Популярные</button>
@@ -67,7 +59,6 @@
             </div>
 
             <div class="content-grid">
-                <!-- Список тем -->
                 <div class="glass-card">
                     <div class="card-header">
                         <h2><i class="fas fa-comments" style="color: var(--gold);"></i> Темы</h2>
@@ -77,8 +68,6 @@
                     <div class="pagination" id="pagination"></div>
                     <button class="btn-primary" id="goToNewTopic"><i class="fas fa-plus-circle"></i> Новая тема</button>
                 </div>
-
-                <!-- Боковая панель: статистика и топ -->
                 <div class="glass-card">
                     <h2 style="display: flex; gap:10px; margin-bottom:1.5rem;"><i class="fas fa-chart-simple" style="color: var(--gold);"></i> Топ тем</h2>
                     <div id="popularTopicsSidebar"></div>
@@ -91,20 +80,24 @@
             </div>
         </div>
 
-        <!-- Просмотр одной темы -->
+        <!-- Просмотр темы -->
         <div id="viewTopic" class="view">
             <button class="btn-back" id="backToHome"><i class="fas fa-arrow-left"></i> Назад к темам</button>
-            <div class="glass-card">
-                <h2 id="topicTitle"></h2>
-                <p class="topic-meta" id="topicMeta"></p>
-                <div id="topicContent" class="topic-content"></div>
-                <div id="repliesContainer" class="replies"></div>
-                <div class="reply-form" id="replyFormBlock" style="display:none;">
-                    <h3>Ваш ответ</h3>
-                    <textarea id="replyText" rows="4" placeholder="Текст ответа..."></textarea>
+            <div class="topic-detail-glass">
+                <div class="topic-header">
+                    <h2 class="topic-view-title" id="topicTitle"></h2>
+                    <div class="topic-meta-bar" id="topicMeta"></div>
+                </div>
+                <hr class="gold-separator" />
+                <div class="topic-body-content" id="topicContent"></div>
+                <h3 class="replies-heading"><i class="fas fa-reply-all"></i> Ответы (<span id="repliesCount">0</span>)</h3>
+                <div class="replies-list" id="repliesContainer"></div>
+                <div class="reply-composer" id="replyFormBlock" style="display:none;">
+                    <div class="composer-header">Ваш ответ</div>
+                    <textarea id="replyText" rows="3" placeholder="Введите ваш ответ..."></textarea>
                     <button class="btn-primary" id="submitReply"><i class="fas fa-paper-plane"></i> Отправить</button>
                 </div>
-                <p id="loginToReply" style="color: var(--text-secondary); display:none;">Войдите, чтобы ответить.</p>
+                <p id="loginToReply" style="color: var(--text-secondary); display:none; text-align:center;">Войдите, чтобы ответить.</p>
             </div>
         </div>
 
@@ -126,16 +119,13 @@
             </div>
         </div>
 
-        <!-- Модальные окна: вход / регистрация -->
+        <!-- Модалка авторизации -->
         <div class="modal-overlay" id="authModal">
-            <div class="modal-dialog" id="authDialog">
-                <!-- динамически заполняется -->
-            </div>
+            <div class="modal-dialog" id="authDialog"></div>
         </div>
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
-
     <script src="script.js"></script>
 </body>
 </html>
